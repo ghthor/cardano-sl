@@ -134,7 +134,7 @@ sendToAllGenesis diffusion (SendToAllGenesisParams duration conc delay_ tpsSentF
                           return (TxCount submitted failed (sending - 1), ())
                 | otherwise = (atomically $ tryReadTQueue txQueue) >>= \case
                       Just (key, txOuts) -> do
-                          utxo <- getOwnUtxoForPk $ safeToPublic (fakeSigner key)
+                          utxo <- getOwnUtxoForPk getOwnUtxos $ safeToPublic (fakeSigner key)
                           etx <- createTx mempty utxo (fakeSigner key) txOuts (toPublic key)
                           case etx of
                               Left err -> do

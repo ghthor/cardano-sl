@@ -14,6 +14,10 @@ module Mode
        , realModeToAuxx
        , makePubKeyAddressAuxx
        , deriveHDAddressAuxx
+
+       -- * Specialisations of utils
+       , getOwnUtxos
+       , getBalance
        ) where
 
 import           Universum
@@ -189,9 +193,11 @@ instance HasConfiguration => MonadBListener AuxxMode where
     onApplyBlocks = realModeToAuxx ... onApplyBlocks
     onRollbackBlocks = realModeToAuxx ... onRollbackBlocks
 
-instance HasConfiguration => MonadBalances AuxxMode where
-    getOwnUtxos addrs = ifM isTempDbUsed (getOwnUtxosGenesis addrs) (getFilteredUtxo addrs)
-    getBalance = getBalanceFromUtxo
+getOwnUtxos :: (HasConfiguration, Applicative m) => [Address] -> m Utxo
+getOwnUtxos addrs = ifM isTempDbUsed (getOwnUtxosGenesis addrs) (getFilteredUtxo addrs)
+
+getBalance :: (HasConfiguration, Applicative m) => Address -> m Coin
+getBalance = getBalanceFromUtxo getOwnUtxos
 
 instance ( HasConfiguration
          , HasInfraConfiguration
