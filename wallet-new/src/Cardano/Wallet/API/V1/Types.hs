@@ -79,6 +79,7 @@ import           Cardano.Wallet.Orphans.Aeson ()
 import           Pos.Util.BackupPhrase (BackupPhrase (..))
 
 
+import           Cardano.Wallet.Util (parseApiUtcTime, showApiUtcTime)
 import qualified Data.ByteArray as ByteArray
 import qualified Data.ByteString as BS
 import           Pos.Aeson.Core ()
@@ -208,14 +209,26 @@ instance FromHttpApiData (V1 Core.Address) where
 instance ToHttpApiData (V1 Core.Address) where
     toQueryParam (V1 a) = sformat build a
 
--- | Represent as number of seconds with precision up to microseconds.
--- Example: @1519923192.346258@.
+-- | Represents according to 'apiTimeFormat' format.
 instance ToJSON (V1 Core.Timestamp) where
-    toJSON timestamp = Number $ view (_V1 . Core.timestampSeconds) timestamp
+    toJSON timestamp =
+        let utcTime = timestamp ^. _V1 . Core.timestampToUTCTimeL
+        in  String $ showApiUtcTime utcTime
 
+-- | Parses from both UTC time in 'apiTimeFormat' format
+-- and POSIX (fractional) timestamp in seconds.
 instance FromJSON (V1 Core.Timestamp) where
-    parseJSON = withScientific "V1 timestamp" $ \n ->
-        pure . V1 $ view (Lens.from Core.timestampSeconds) n
+    parseJSON v = V1 <$> asum
+        [ utcTimeParser v
+        , timePosixParser v
+        ]
+      where
+        utcTimeParser = withText "UTC time" $ \t -> do
+            utcTime <- parseApiUtcTime t
+            pure $ utcTime ^. Lens.from Core.timestampToUTCTimeL
+        timePosixParser =
+            withScientific "Timestamp in fractional seconds" $ \num ->
+            pure $ num ^. Lens.from Core.timestampSeconds
 
 instance Arbitrary (V1 Core.Timestamp) where
     arbitrary = fmap V1 arbitrary
