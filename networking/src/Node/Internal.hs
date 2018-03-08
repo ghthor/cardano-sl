@@ -1793,7 +1793,7 @@ bracketWithException before after thing = UnsafeExc.mask $ \restore -> do
     case res1 of
         Left (e1 :: SomeException) -> do
             _ :: Either SomeException b <-
-                UnsafeExc.try $ UnsafeExc.uninterruptibleMask_ $ after x (UnsafeExc.fromException e1)
+                UnsafeExc.try $ UsnafeExc.uninterruptibleMask_ $ after x (UnsafeExc.fromException e1)
             UnsafeExc.throwM e1
         Right y -> do
             _ <- UnsafeExc.uninterruptibleMask_ $ after x Nothing
