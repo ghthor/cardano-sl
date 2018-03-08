@@ -154,13 +154,13 @@ withCompressedLogs ::
     -> m a
 withCompressedLogs files action = do
     tar <- liftIO $ tarPackIndependently files
-    let tarxz = compressStrict tar
+    let tarxz = compressing tar
     aName <- getArchiveName
     bracket (openFile aName WriteMode)
             (\h -> liftIO (hClose h >> removeFile aName))
-            (\h -> liftIO (BS.hPut h tarxz >> hClose h) >> action aName)
+            (\h -> liftIO (BSL.hPut h tarxz >> hClose h) >> action aName)
   where
-    tarPackIndependently :: [FilePath] -> IO ByteString
+    tarPackIndependently :: [FilePath] -> IO BSL.ByteString
     tarPackIndependently paths = do
         entries <- forM paths $ \p -> do
             unlessM (doesFileExist p) $ throwM $
@@ -171,18 +171,16 @@ withCompressedLogs files action = do
                             (Tar.toTarPath False $ takeFileName p)
             pabs <- canonicalizePath p
             Tar.packFileEntry pabs tPath
-        pure $ BSL.toStrict $ Tar.write entries
+        pure $ Tar.write entries
     getArchiveName = liftIO $ do
         -- Name can't be too long since there's a limitation on key size (32).
         -- See ParseRequestBodyOptions in wai-extra.
         curTime <- formatTime defaultTimeLocale "%q" <$> getCurrentTime
         tempDir <- getTemporaryDirectory
         pure $ tempDir <//> ("report-" <> take 6 curTime <> ".tar.lzma")
-    compressStrict = BSL.toStrict .
-                     compressWith
-                     defaultCompressParams
-                     { compressLevel = CompressionLevel0 } .
-                     BSL.fromStrict
+    compressing = compressWith
+                  defaultCompressParams
+                  { compressLevel = CompressionLevel0 }
 
 -- | Creates a temp file from given text
 withTempLogFile :: (MonadIO m, MonadMask m) => Text -> (FilePath -> m a) -> m a
