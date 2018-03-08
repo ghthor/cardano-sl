@@ -62,8 +62,10 @@ import           Data.Aeson.TH
 import           Data.Aeson.Types (typeMismatch)
 import qualified Data.Char as C
 import           Data.Text (Text, dropEnd, toLower)
+import qualified Data.Text.Buildable
 import           Data.Version (Version)
 import           Formatting (build, int, sformat, (%))
+import           Formatting (bprint, build, (%))
 import           GHC.Generics (Generic)
 import qualified Prelude
 import qualified Serokell.Aeson.Options as Serokell
@@ -87,6 +89,7 @@ import           Pos.Core (addressF)
 import qualified Pos.Core as Core
 import           Pos.Crypto (decodeHash, hashHexF)
 import qualified Pos.Crypto.Signing as Core
+import           Pos.Util.LogSafe (BuildableSafeGen (..), SecureLog (..))
 
 --
 -- Versioning
@@ -119,6 +122,12 @@ instance Enum a => Enum (V1 a) where
 instance Bounded a => Bounded (V1 a) where
     minBound = V1 $ minBound @a
     maxBound = V1 $ maxBound @a
+
+instance Buildable a => Buildable (V1 a) where
+    build (V1 x) = bprint build x
+
+instance Buildable (SecureLog a) => Buildable (SecureLog (V1 a)) where
+    build (SecureLog vx) = bprint build (SecureLog vx)
 
 --
 -- Benign instances
@@ -223,6 +232,10 @@ data AssuranceLevel =
     NormalAssurance
   | StrictAssurance
   deriving (Eq, Show, Enum, Bounded)
+
+instance BuildableSafeGen AssuranceLevel where
+    buildSafeGen _sl NormalAssurance = "normal assurance"
+    buildSafeGen _sl StrictAssurance = "strict assurance"
 
 instance Arbitrary AssuranceLevel where
     arbitrary = elements [minBound .. maxBound]

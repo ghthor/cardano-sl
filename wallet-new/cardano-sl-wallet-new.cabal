@@ -91,6 +91,7 @@ library
                      , text
                      , text-format
                      , transformers
+                     , reflection
                      , universum
                      , unordered-containers
                      , vector
@@ -129,6 +130,7 @@ library
                       ScopedTypeVariables
                       UndecidableInstances
                       MonadFailDesugaring
+                      TupleSections
 
 executable cardano-node
   hs-source-dirs:      server

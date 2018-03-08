@@ -15,6 +15,7 @@ import qualified Data.Text as T
 import           Data.Typeable (Typeable)
 import qualified Generics.SOP as SOP
 import           GHC.TypeLits (Symbol)
+import           Pos.Util.Servant (ApiCanLogArg (..), ApiHasArgClass (..))
 
 import           Cardano.Wallet.API.Indices
 import           Network.HTTP.Types (parseQueryText)
@@ -38,8 +39,7 @@ data FilterOperations a where
 instance Show (FilterOperations a) where
     show = show . flattenOperations
 
--- | Handy helper function to show opaque 'FilterOperation'(s), mostly for
--- debug purposes.
+-- | Handy helper function to transform 'FilterOperation'(s) into list.
 flattenOperations :: FilterOperations a -> [String]
 flattenOperations NoFilters       = mempty
 flattenOperations (FilterOp f fs) = show f : flattenOperations fs
@@ -129,6 +129,16 @@ instance ( HasServer subApi ctx
                           return $ toFilterOperations req allParams (Proxy @ixs)
 
         in route (Proxy :: Proxy subApi) context delayed
+
+instance KnownSymbols syms => ApiHasArgClass (FilterBy syms a) where
+    type ApiArg (FilterBy syms a) = FilterOperations a
+
+    apiArgName _ =
+        let  filterNames = mconcat . intersperse ", " $ symbolVals (Proxy @syms)
+        in  "filters: " <> filterNames
+
+instance KnownSymbols syms => ApiCanLogArg (FilterBy syms a) where
+    toLogParamInfo _ param = \_sl -> show param
 
 parseFilterParams :: forall a ixs. (
                      SOP.All (ToIndex a) ixs

@@ -5,6 +5,7 @@ module Cardano.Wallet.API
        , publicAPI
        ) where
 
+import           Pos.Util.Servant (LoggingApi)
 import           Servant ((:<|>), (:>), Proxy (..))
 
 import qualified Cardano.Wallet.API.Development as Dev
@@ -40,7 +41,7 @@ type InternalAPI =
                   :> Tags '["Development"]
                   :> Dev.API
 
-type WalletAPI = ExternalAPI :<|> InternalAPI
+type WalletAPI = LoggingApi WalletLoggingConfig (ExternalAPI :<|> InternalAPI)
 
 walletAPI :: Proxy WalletAPI
 walletAPI = Proxy
